@@ -1,0 +1,30 @@
+.sparkleContainer {
+  position: fixed;
+  pointer-events: none;
+  inset: 0;
+  z-index: 9999;
+}
+
+.sparkle {
+  position: absolute;
+  background: radial-gradient(circle, #fffbe6 60%, #ffd600 100%);
+  border-radius: 50%;
+  opacity: 0.85;
+  animation: sparkle-fade 1s linear forwards;
+  box-shadow: 0 0 8px 2px #ffd60099;
+}
+
+@keyframes sparkle-fade {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.7) rotate(0deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.2) rotate(20deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(160deg);
+  }
+}

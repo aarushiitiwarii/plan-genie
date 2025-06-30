@@ -1,0 +1,210 @@
+.container {
+  min-height: 100vh;
+  background: #0a1333;
+  color: #fff;
+  font-family: sans-serif, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  padding: 32px 40px 0 40px;
+}
+
+.logoSection {
+  display: flex;
+  align-items: center;
+  margin-left: 0;
+}
+
+.logo {
+  height: 100px;
+  margin-right: 0;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.mainContent {
+  position: relative;
+  display: flex;
+  justify-content: center; /* Center the form horizontally */
+  align-items: flex-start;
+  margin-top: 30px;
+  width: 100%;
+  min-height: 600px; /* or as needed */
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 400px;
+  gap: 18px;
+}
+
+.label {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-family: 'Poppins', serif;
+  text-align: center;
+}
+
+.select {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  width: 340px;
+  background: #ffd600;
+  color: #222;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  padding: 10px 18px;
+  margin-bottom: 10px;
+  outline: none;
+  appearance: none;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  /* Add custom arrow */
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 25px center;
+  background-size: 40px 40px;
+  cursor: pointer;
+}
+
+.input, .card {
+  width: 340px;
+  background: #ffd600;
+  color: #222;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  padding: 10px 18px;
+  margin-bottom: 10px;
+  outline: none;
+  appearance: none;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+}
+
+.input {
+  background: #ffd600;
+}
+
+.cardGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  background: #ffd600;
+  color: #222;
+  border-radius: 14px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin: 0 auto;
+  width: 340px;
+  position: relative;
+}
+
+.card .radio {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #222;
+  margin-right: 16px;
+  position: relative;
+}
+
+.selected {
+  background: #ffe066;
+  color: #222;
+}
+
+.selected .radio {
+  background: #222;
+  border-color: #222;
+  box-shadow: 0 0 0 4px #ffd600;
+}
+
+.generateBtn {
+  background: #18e05a;
+  color: #222;
+  border: none;
+  border-radius: 18px;
+  padding: 16px 38px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-top: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.generateBtn:hover {
+  background: #13b94a;
+}
+
+.generateBtn:disabled {
+  background: #bfc7e0;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.genieSection {
+  position: absolute;
+  margin-bottom: 300px;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  margin-right: 0;
+}
+
+.genieImg {
+  max-height: 500px;
+  
+  width: auto;
+  object-fit: contain;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .mainContent {
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+  .form {
+    min-width: 260px;
+    width: 100%;
+  }
+  .card, .select, .input {
+    width: 90vw;
+    min-width: 0;
+    max-width: 340px;
+  }
+}
