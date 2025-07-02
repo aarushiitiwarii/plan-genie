@@ -1,199 +1,146 @@
-import React, { useState, useEffect } from "react";
-import Sparkles from "../components/Sparkles";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import axios from "axios";
+import styles from "./result.module.css";
 import Navbar from "../components/NavBar";
-import styles from "./manage.module.css";
 
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
-}
+export default function Result() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-function getFirstDayOfWeek(year, month) {
-  return new Date(year, month, 1).getDay();
-}
-
-const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-
-export default function Manage() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [calendarMonth, setCalendarMonth] = useState(selectedDate.getMonth());
-  const [calendarYear, setCalendarYear] = useState(selectedDate.getFullYear());
-  const [tasksByDate, setTasksByDate] = useState({});
-  const [checked, setChecked] = useState({});
-  const [editingTaskIndex, setEditingTaskIndex] = useState(null);
-  const [editedTask, setEditedTask] = useState("");
-  const [showSparkles, setShowSparkles] = useState(false);
-
-  const startDate = new Date();
+  const [weeks, setWeeks] = useState([]);
+  const [modalIndex, setModalIndex] = useState(null);
+  const [editedText, setEditedText] = useState("");
+  const [loadingRegen, setLoadingRegen] = useState(false);
 
   useEffect(() => {
-    const storedRoadmap = localStorage.getItem("roadmap");
-    if (storedRoadmap) {
-      const lines = storedRoadmap
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"));
+    const roadmap = location.state?.roadmap || localStorage.getItem("roadmap");
+    if (!roadmap) return;
+    const weekChunks = roadmap.split(/(?=Week \d+:)/g).map((w) => w.trim());
+    setWeeks(weekChunks);
+  }, [location.state]);
 
-      const tasks = {};
-      lines.forEach((task, i) => {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        const dateKey = date.toISOString().split("T")[0];
-        if (!tasks[dateKey]) tasks[dateKey] = [];
-        tasks[dateKey].push(task.replace(/^\s*-\s*/, ""));
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const items = Array.from(weeks);
+    const [reordered] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reordered);
+    setWeeks(items);
+  };
+
+  const saveToBackend = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return alert("User not logged in.");
+    const roadmapText = weeks.join("\n\n");
+    try {
+      await axios.post("http://localhost:5000/api/roadmaps", {
+        userId,
+        content: roadmapText,
       });
-
-      setTasksByDate(tasks);
-    }
-  }, []);
-
-  const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
-  const firstDay = getFirstDayOfWeek(calendarYear, calendarMonth);
-
-  const handleDayClick = (day) => {
-    const newDate = new Date(calendarYear, calendarMonth, day);
-    setSelectedDate(newDate);
-  };
-
-  const formatDateKey = (y, m, d) => {
-    return new Date(y, m, d).toISOString().split("T")[0];
-  };
-
-  const dateKey = formatDateKey(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth(),
-    selectedDate.getDate()
-  );
-
-  const tasks = tasksByDate[dateKey] || [];
-  const handleCheck = (idx) => {
-    const newChecked = { ...checked, [dateKey + "-" + idx]: !checked[dateKey + "-" + idx] };
-    setChecked(newChecked);
-    if (tasks.every((_, i) => newChecked[dateKey + "-" + i] || i === idx)) {
-      setShowSparkles(true);
-      setTimeout(() => setShowSparkles(false), 1500);
+      alert("Roadmap saved to your profile!");
+    } catch (err) {
+      alert("Failed to save roadmap.");
+      console.error(err);
     }
   };
 
-  const handleEdit = (i) => {
-    setEditingTaskIndex(i);
-    setEditedTask(tasks[i]);
+  const openModal = (index) => {
+    setModalIndex(index);
+    setEditedText(weeks[index]);
   };
 
-  const saveEdit = () => {
-    const updatedTasks = [...tasks];
-    updatedTasks[editingTaskIndex] = editedTask;
-    const updated = { ...tasksByDate, [dateKey]: updatedTasks };
-    setTasksByDate(updated);
-    localStorage.setItem("roadmap", convertTasksToRoadmap(updated));
-    setEditingTaskIndex(null);
-    setEditedTask("");
+  const saveModalEdits = () => {
+    const updated = [...weeks];
+    updated[modalIndex] = editedText;
+    setWeeks(updated);
+    setModalIndex(null);
   };
 
-  const convertTasksToRoadmap = (allTasks) => {
-    const flat = [];
-    Object.values(allTasks).forEach((list) => {
-      list.forEach((t) => flat.push("- " + t));
-    });
-    return flat.join("\n");
+  const deleteWeek = () => {
+    const updated = [...weeks];
+    updated.splice(modalIndex, 1);
+    setWeeks(updated);
+    setModalIndex(null);
   };
 
-  const getDayColor = (y, m, d) => {
-    const key = formatDateKey(y, m, d);
-    const t = tasksByDate[key];
-    if (!t) return "#fff";
-    const allDone = t.every((_, i) => checked[key + "-" + i]);
-    if (allDone) return "#a3e635";
-    return "#facc15";
+  const regenerateRoadmap = async () => {
+    const savedInput = JSON.parse(localStorage.getItem("planGenieInput"));
+    if (!savedInput) return alert("No previous input found.");
+
+    setLoadingRegen(true);
+    try {
+      const res = await axios.post("http://localhost:5000/api/roadmaps/generate", savedInput);
+      const roadmapStr = res.data.roadmap;
+      const weekChunks = roadmapStr.split(/(?=Week \d+:)/g).map((w) => w.trim());
+      localStorage.setItem("roadmap", roadmapStr);
+      setWeeks(weekChunks);
+    } catch (err) {
+      alert("Failed to regenerate roadmap");
+      console.error(err);
+    } finally {
+      setLoadingRegen(false);
+    }
   };
 
   return (
-    <div>
+    <div className={styles.wrapper}>
       <Navbar />
-      {showSparkles && <Sparkles trigger={showSparkles} onEnd={() => setShowSparkles(false)} />}
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.calendarSection}>
-            <div className={styles.navBar}>
-              <button onClick={() => setCalendarMonth(m => (m === 0 ? 11 : m - 1))}>◀</button>
-              <h2 className={styles.monthLabel}>{monthNames[calendarMonth]} {calendarYear}</h2>
-              <button onClick={() => setCalendarMonth(m => (m === 11 ? 0 : m + 1))}>▶</button>
-            </div>
-            <div className={styles.calendarGrid}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className={styles.dayLabel}>{d}</div>
-              ))}
-              {Array(firstDay).fill(null).map((_, i) => (
-                <div key={"empty-" + i} className={styles.dayCellEmpty}></div>
-              ))}
-              {Array(daysInMonth).fill(null).map((_, i) => {
-                const day = i + 1;
-                const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === calendarMonth;
-                return (
-                  <button
-                    key={day}
-                    className={`${styles.dayCell} ${isSelected ? styles.selectedDay : ""}`}
-                    style={{ backgroundColor: getDayColor(calendarYear, calendarMonth, day) }}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      <h2 className={styles.heading}>Your Personalized Roadmap</h2>
 
-          <div className={styles.todoSection}>
-            <div className={styles.todoCard}>
-              <div className={styles.todoTitle}>
-                Tasks for {selectedDate.getDate()} {monthNames[selectedDate.getMonth()]}
-              </div>
-              <ul className={styles.todoList}>
-                {tasks.length === 0 ? (
-                  <li className={styles.todoItem} style={{ color: "#888" }}>
-                    No tasks assigned.
-                  </li>
-                ) : (
-                  tasks.map((task, idx) => (
-                    <li key={idx} className={styles.todoItem}>
-                      <input
-                        type="checkbox"
-                        checked={!!checked[dateKey + "-" + idx]}
-                        onChange={() => handleCheck(idx)}
-                        style={{ marginRight: 12, width: 20, height: 20 }}
-                      />
-                      {editingTaskIndex === idx ? (
-                        <>
-                          <input
-                            value={editedTask}
-                            onChange={(e) => setEditedTask(e.target.value)}
-                            style={{ marginRight: 10, width: "60%" }}
-                          />
-                          <button onClick={saveEdit}>Save</button>
-                        </>
-                      ) : (
-                        <>
-                          <span
-                            style={{
-                              textDecoration: checked[dateKey + "-" + idx] ? "line-through" : "none"
-                            }}
-                          >
-                            {task}
-                          </span>
-                          <button onClick={() => handleEdit(idx)} style={{ marginLeft: 10 }}>
-                            ✏️
-                          </button>
-                        </>
-                      )}
-                    </li>
-                  ))
-                )}
-              </ul>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="weeks" direction="horizontal">
+          {(provided) => (
+            <div className={styles.grid} {...provided.droppableProps} ref={provided.innerRef}>
+              {weeks.slice(1).map((week, index) => (
+                <Draggable key={index + 1} draggableId={`week-${index + 1}`} index={index}>
+                  {(provided) => (
+                    <div
+                      className={styles.card}
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      onClick={() => openModal(index + 1)}
+                    >
+                      <div className={styles.previewText}>
+                        {week.split("\n")[0]}
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+
+      <div className={styles.buttonRow}>
+        <button onClick={() => navigate(-1)}>Back</button>
+        <button onClick={saveToBackend}>Save Roadmap</button>
+        <button onClick={() => alert("Edit Roadmap coming soon")}>Edit Roadmap</button>
+        <button onClick={regenerateRoadmap} disabled={loadingRegen}>
+          {loadingRegen ? "Regenerating..." : "Regenerate"}
+        </button>
+      </div>
+
+      {modalIndex !== null && (
+        <div className={styles.modalOverlay} onClick={() => setModalIndex(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalHeading}>{weeks[modalIndex].split("\n")[0]}</h3>
+            <textarea
+              className={styles.modalTextarea}
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+            />
+            <div className={styles.modalButtons}>
+              <button onClick={saveModalEdits}>Save</button>
+              <button onClick={deleteWeek}>Delete</button>
+              <button onClick={() => setModalIndex(null)}>Cancel</button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

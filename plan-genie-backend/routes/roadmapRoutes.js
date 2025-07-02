@@ -30,7 +30,6 @@ router.post("/generate", async (req, res) => {
     weeksSection += `Week ${i}: [Title]\nGoal: [Goal for the week]\nTasks:\n1. ...\n2. ...\n3. ...\n[Add recommended free/paid resources]\n\n`;
   }
 
-  // Final AI prompt using weeksSection
   const prompt = `
 You are PlanGenie, an AI learning roadmap assistant.
 
@@ -55,6 +54,15 @@ ${weeksSection}
 `;
 
   try {
+    // Debug logs
+    console.log("🔑 API KEY (shortened):", process.env.OPENROUTER_API_KEY?.slice(0, 10));
+    console.log("🛠️ Headers being sent:", {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "http://localhost:5173",
+      "X-Title": "PlanGenie"
+    });
+
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -65,6 +73,8 @@ ${weeksSection}
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "http://localhost:5173", // Change this to your production frontend if deployed
+          "X-Title": "PlanGenie"
         },
       }
     );

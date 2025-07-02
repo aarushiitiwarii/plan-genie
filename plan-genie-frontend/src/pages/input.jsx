@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styles from "./input.module.css";
+import homeStyles from "./home.module.css";
 import logoImg from "../assets/logo.png";
 import profileIcon from "../assets/profile.png";
+import NavBar from "../components/NavBar";
 
 export default function Input() {
   const [goal, setGoal] = useState("");
@@ -74,23 +76,8 @@ export default function Input() {
 
   return (
     <div className={styles.container}>
-      <nav className={styles.navbar}>
-        <div className={styles.logoSection}>
-          <img src={logoImg} alt="PlanGenie Logo" className={styles.logo} />
-          <span className={styles.brand}>PlanGenie</span>
-        </div>
-        <div className={styles.navLinks}>
-          <a href="/" className={styles.link}>Home</a>
-          <img
-            src={profileIcon}
-            alt="Profile"
-            className={styles.profileIcon}
-            onClick={() => navigate("/profile")}
-          />
-        </div>
-      </nav>
-
-      <main className={styles.mainContent}>
+      <NavBar />
+      <main className={homeStyles.pageContent + " " + styles.mainContent}>
         <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
           <div className={styles.label}>What's your learning goal?</div>
           <input

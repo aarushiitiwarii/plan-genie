@@ -1,199 +1,193 @@
-import React, { useState, useEffect } from "react";
-import Sparkles from "../components/Sparkles";
-import Navbar from "../components/Navbar";
-import styles from "./manage.module.css";
-
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
+.wrapper {
+   padding: 10rem 2rem 2rem; 
+  max-width: 1200px;
+  margin: auto;
 }
 
-function getFirstDayOfWeek(year, month) {
-  return new Date(year, month, 1).getDay();
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ccc;
 }
 
-const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
+.logoSection {
+  display: flex;
+  align-items: center;
+}
 
-export default function Manage() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [calendarMonth, setCalendarMonth] = useState(selectedDate.getMonth());
-  const [calendarYear, setCalendarYear] = useState(selectedDate.getFullYear());
-  const [tasksByDate, setTasksByDate] = useState({});
-  const [checked, setChecked] = useState({});
-  const [editingTaskIndex, setEditingTaskIndex] = useState(null);
-  const [editedTask, setEditedTask] = useState("");
-  const [showSparkles, setShowSparkles] = useState(false);
+.logo {
+  height: 40px;
+  margin-right: 10px;
+}
 
-  const startDate = new Date();
+.brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a237e;
+}
 
-  useEffect(() => {
-    const storedRoadmap = localStorage.getItem("roadmap");
-    if (storedRoadmap) {
-      const lines = storedRoadmap
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"));
+.navLinks {
+  display: flex;
+  align-items: center;
+}
 
-      const tasks = {};
-      lines.forEach((task, i) => {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        const dateKey = date.toISOString().split("T")[0];
-        if (!tasks[dateKey]) tasks[dateKey] = [];
-        tasks[dateKey].push(task.replace(/^\s*-\s*/, ""));
-      });
+.link {
+  margin-right: 15px;
+  text-decoration: none;
+  font-weight: 500;
+  color: #333;
+}
 
-      setTasksByDate(tasks);
-    }
-  }, []);
+.profileIcon {
+  height: 32px;
+  width: 32px;
+  cursor: pointer;
+}
 
-  const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
-  const firstDay = getFirstDayOfWeek(calendarYear, calendarMonth);
+.heading {
+  text-align: center;
+  font-size: 2rem;
+  margin: 1rem 0;
+  color: #fbc02d;
+}
 
-  const handleDayClick = (day) => {
-    const newDate = new Date(calendarYear, calendarMonth, day);
-    setSelectedDate(newDate);
-  };
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
 
-  const formatDateKey = (y, m, d) => {
-    return new Date(y, m, d).toISOString().split("T")[0];
-  };
+.card {
+  background: #f9f9ff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 1rem;
+  width: 260px;
+  height: 120px;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s;
+}
 
-  const dateKey = formatDateKey(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth(),
-    selectedDate.getDate()
-  );
+.card:hover {
+  background: #f1f1f9;
+}
 
-  const tasks = tasksByDate[dateKey] || [];
-  const handleCheck = (idx) => {
-    const newChecked = { ...checked, [dateKey + "-" + idx]: !checked[dateKey + "-" + idx] };
-    setChecked(newChecked);
-    if (tasks.every((_, i) => newChecked[dateKey + "-" + i] || i === idx)) {
-      setShowSparkles(true);
-      setTimeout(() => setShowSparkles(false), 1500);
-    }
-  };
+.previewText {
+  font-weight: 600;
+  color: #1a237e;
+  font-size: 1rem;
+}
 
-  const handleEdit = (i) => {
-    setEditingTaskIndex(i);
-    setEditedTask(tasks[i]);
-  };
+/* Buttons */
+.buttonRow {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
 
-  const saveEdit = () => {
-    const updatedTasks = [...tasks];
-    updatedTasks[editingTaskIndex] = editedTask;
-    const updated = { ...tasksByDate, [dateKey]: updatedTasks };
-    setTasksByDate(updated);
-    localStorage.setItem("roadmap", convertTasksToRoadmap(updated));
-    setEditingTaskIndex(null);
-    setEditedTask("");
-  };
+.buttonRow button {
+  background-color: #fbc02d;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
 
-  const convertTasksToRoadmap = (allTasks) => {
-    const flat = [];
-    Object.values(allTasks).forEach((list) => {
-      list.forEach((t) => flat.push("- " + t));
-    });
-    return flat.join("\n");
-  };
+.buttonRow button:hover {
+  background-color: #f9a825;
+}
 
-  const getDayColor = (y, m, d) => {
-    const key = formatDateKey(y, m, d);
-    const t = tasksByDate[key];
-    if (!t) return "#fff";
-    const allDone = t.every((_, i) => checked[key + "-" + i]);
-    if (allDone) return "#a3e635";
-    return "#facc15";
-  };
+/* Modal */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
-  return (
-    <div>
-      <Navbar />
-      {showSparkles && <Sparkles trigger={showSparkles} onEnd={() => setShowSparkles(false)} />}
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.calendarSection}>
-            <div className={styles.navBar}>
-              <button onClick={() => setCalendarMonth(m => (m === 0 ? 11 : m - 1))}>◀</button>
-              <h2 className={styles.monthLabel}>{monthNames[calendarMonth]} {calendarYear}</h2>
-              <button onClick={() => setCalendarMonth(m => (m === 11 ? 0 : m + 1))}>▶</button>
-            </div>
-            <div className={styles.calendarGrid}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className={styles.dayLabel}>{d}</div>
-              ))}
-              {Array(firstDay).fill(null).map((_, i) => (
-                <div key={"empty-" + i} className={styles.dayCellEmpty}></div>
-              ))}
-              {Array(daysInMonth).fill(null).map((_, i) => {
-                const day = i + 1;
-                const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === calendarMonth;
-                return (
-                  <button
-                    key={day}
-                    className={`${styles.dayCell} ${isSelected ? styles.selectedDay : ""}`}
-                    style={{ backgroundColor: getDayColor(calendarYear, calendarMonth, day) }}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(20, 20, 20, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
 
-          <div className={styles.todoSection}>
-            <div className={styles.todoCard}>
-              <div className={styles.todoTitle}>
-                Tasks for {selectedDate.getDate()} {monthNames[selectedDate.getMonth()]}
-              </div>
-              <ul className={styles.todoList}>
-                {tasks.length === 0 ? (
-                  <li className={styles.todoItem} style={{ color: "#888" }}>
-                    No tasks assigned.
-                  </li>
-                ) : (
-                  tasks.map((task, idx) => (
-                    <li key={idx} className={styles.todoItem}>
-                      <input
-                        type="checkbox"
-                        checked={!!checked[dateKey + "-" + idx]}
-                        onChange={() => handleCheck(idx)}
-                        style={{ marginRight: 12, width: 20, height: 20 }}
-                      />
-                      {editingTaskIndex === idx ? (
-                        <>
-                          <input
-                            value={editedTask}
-                            onChange={(e) => setEditedTask(e.target.value)}
-                            style={{ marginRight: 10, width: "60%" }}
-                          />
-                          <button onClick={saveEdit}>Save</button>
-                        </>
-                      ) : (
-                        <>
-                          <span
-                            style={{
-                              textDecoration: checked[dateKey + "-" + idx] ? "line-through" : "none"
-                            }}
-                          >
-                            {task}
-                          </span>
-                          <button onClick={() => handleEdit(idx)} style={{ marginLeft: 10 }}>
-                            ✏️
-                          </button>
-                        </>
-                      )}
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+.modalContent {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 18px;
+  width: 90%;
+  max-width: 700px;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.modalHeading {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #1a237e;
+}
+
+.modalTextarea {
+  width: 100%;
+  min-height: 280px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  line-height: 1.5;
+  background: #fefefe;
+  color: #333;
+  white-space: pre-wrap;
+  outline: none;
+}
+
+.modalTextarea::selection {
+  background-color: #fff59d;
+}
+
+.modalTextarea::-webkit-scrollbar {
+  width: 6px;
+}
+.modalTextarea::-webkit-scrollbar-thumb {
+  background: #fbc02d;
+  border-radius: 10px;
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.modalButtons button {
+  background: #fbc02d;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.2s;
+}
+
+.modalButtons button:hover {
+  background: #f9a825;
 }

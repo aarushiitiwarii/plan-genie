@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Sparkles from "../components/Sparkles";
 import NavBar from "../components/NavBar";
 import styles from "./manage.module.css";
@@ -25,28 +26,77 @@ export default function Manage() {
   const [editingTaskIndex, setEditingTaskIndex] = useState(null);
   const [editedTask, setEditedTask] = useState("");
   const [showSparkles, setShowSparkles] = useState(false);
-
-  const startDate = new Date(); // Can be adjusted to any fixed start date
+  const [startDate, setStartDate] = useState(new Date()); // ✅ Start date picker
 
   useEffect(() => {
-    const storedRoadmap = localStorage.getItem("roadmap");
-    if (storedRoadmap) {
-      const lines = storedRoadmap
-        .split("\n")
-        .filter((l) => l.trim().startsWith("-"));
+    const userId = localStorage.getItem("userId");
+    const localRoadmap = localStorage.getItem("roadmap");
 
-      const tasks = {};
-      lines.forEach((task, i) => {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        const dateKey = date.toISOString().split("T")[0];
-        if (!tasks[dateKey]) tasks[dateKey] = [];
-        tasks[dateKey].push(task.replace(/^\s*-\s*/, ""));
-      });
-
-      setTasksByDate(tasks);
+    // Helper: Parse roadmap text into weeks and tasks
+    function parseRoadmapWeeks(text) {
+      const weekRegex = /Week (\d+):[\s\S]*?Tasks:\n([\s\S]*?)(?=(\nWeek \d+:|$))/g;
+      let match;
+      const weeks = [];
+      while ((match = weekRegex.exec(text)) !== null) {
+        const weekNum = parseInt(match[1], 10);
+        const tasksBlock = match[2];
+        const tasks = tasksBlock
+          .split(/\n\d+\. /)
+          .map(t => t.replace(/\n/g, " ").trim())
+          .filter(t => t && !/^Tasks:/.test(t));
+        weeks.push({ weekNum, tasks });
+      }
+      return weeks;
     }
-  }, []);
+
+    // Helper: Distribute weekly tasks into days
+    function distributeTasksByDate(weeks, startDate) {
+      const tasksByDate = {};
+      let currentDate = new Date(startDate);
+      weeks.forEach(week => {
+        const daysInWeek = 7;
+        const numTasks = week.tasks.length;
+        let dayIdx = 0;
+        week.tasks.forEach((task, i) => {
+          // Assign each task to a day, cycling through the week
+          const date = new Date(currentDate);
+          date.setDate(currentDate.getDate() + dayIdx);
+          const dateKey = date.toISOString().split("T")[0];
+          if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
+          tasksByDate[dateKey].push(task);
+          dayIdx = (dayIdx + 1) % daysInWeek;
+          if (dayIdx === 0 && i !== numTasks - 1) {
+            // Move to next week if more tasks remain
+            currentDate.setDate(currentDate.getDate() + daysInWeek);
+          }
+        });
+        // After each week, move currentDate to next week
+        currentDate.setDate(currentDate.getDate() + daysInWeek - dayIdx);
+      });
+      return tasksByDate;
+    }
+
+    const processRoadmap = (text) => {
+      const weeks = parseRoadmapWeeks(text);
+      const distributed = distributeTasksByDate(weeks, startDate);
+      setTasksByDate(distributed);
+    };
+
+    if (localRoadmap) {
+      processRoadmap(localRoadmap);
+    } else if (userId) {
+      axios
+        .get(`http://localhost:5000/api/roadmaps/user/${userId}`)
+        .then((res) => {
+          if (res.data && res.data.length > 0) {
+            const latest = res.data[0].content;
+            localStorage.setItem("roadmap", latest);
+            processRoadmap(latest);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch roadmap:", err));
+    }
+  }, [startDate]);
 
   const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
   const firstDay = getFirstDayOfWeek(calendarYear, calendarMonth);
@@ -86,20 +136,10 @@ export default function Manage() {
   const saveEdit = () => {
     const updatedTasks = [...tasks];
     updatedTasks[editingTaskIndex] = editedTask;
-
     const updated = { ...tasksByDate, [dateKey]: updatedTasks };
     setTasksByDate(updated);
-    localStorage.setItem("roadmap", convertTasksToRoadmap(updated)); // Optional save
     setEditingTaskIndex(null);
     setEditedTask("");
-  };
-
-  const convertTasksToRoadmap = (allTasks) => {
-    const flat = [];
-    Object.values(allTasks).forEach((list) => {
-      list.forEach((t) => flat.push("- " + t));
-    });
-    return flat.join("\n");
   };
 
   const getDayColor = (y, m, d) => {
@@ -107,8 +147,7 @@ export default function Manage() {
     const t = tasksByDate[key];
     if (!t) return "#eee";
     const allDone = t.every((_, i) => checked[key + "-" + i]);
-    if (allDone) return "#a3e635"; // green
-    return "#facc15"; // yellow
+    return allDone ? "#a3e635" : "#facc15";
   };
 
   return (
@@ -116,9 +155,20 @@ export default function Manage() {
       <NavBar />
       {showSparkles && <Sparkles trigger={showSparkles} onEnd={() => setShowSparkles(false)} />}
       <div className={styles.content}>
+        <div className={styles.topControls}>
+          <label style={{ fontWeight: 600 }}>
+            Start Date:{" "}
+            <input
+              type="date"
+              value={startDate.toISOString().split("T")[0]}
+              onChange={(e) => setStartDate(new Date(e.target.value))}
+            />
+          </label>
+        </div>
+
         <div className={styles.calendarSection}>
           <div className={styles.monthHeader}>
-            <button className={styles.monthArrow} onClick={() => {
+            <button onClick={() => {
               if (calendarMonth === 0) {
                 setCalendarMonth(11);
                 setCalendarYear(calendarYear - 1);
@@ -128,10 +178,8 @@ export default function Manage() {
             }}>
               &#60;
             </button>
-            <span className={styles.monthLabel}>
-              {monthNames[calendarMonth]} {calendarYear}
-            </span>
-            <button className={styles.monthArrow} onClick={() => {
+            <span>{monthNames[calendarMonth]} {calendarYear}</span>
+            <button onClick={() => {
               if (calendarMonth === 11) {
                 setCalendarMonth(0);
                 setCalendarYear(calendarYear + 1);
@@ -142,6 +190,7 @@ export default function Manage() {
               &#62;
             </button>
           </div>
+
           <div className={styles.calendarGrid}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
               <div key={d} className={styles.dayLabel}>{d}</div>
@@ -186,22 +235,22 @@ export default function Manage() {
                       type="checkbox"
                       checked={!!checked[dateKey + "-" + idx]}
                       onChange={() => handleCheck(idx)}
-                      style={{ marginRight: 12, width: 20, height: 20 }}
                     />
                     {editingTaskIndex === idx ? (
                       <>
                         <input
                           value={editedTask}
                           onChange={(e) => setEditedTask(e.target.value)}
-                          style={{ marginRight: 10, width: "60%" }}
+                          style={{ marginLeft: 10 }}
                         />
-                        <button onClick={saveEdit}>Save</button>
+                        <button onClick={saveEdit} style={{ marginLeft: 10 }}>Save</button>
                       </>
                     ) : (
                       <>
                         <span
                           style={{
-                            textDecoration: checked[dateKey + "-" + idx] ? "line-through" : "none"
+                            textDecoration: checked[dateKey + "-" + idx] ? "line-through" : "none",
+                            marginLeft: 10
                           }}
                         >
                           {task}

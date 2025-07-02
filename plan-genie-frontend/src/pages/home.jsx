@@ -94,15 +94,15 @@ export default function Home({ showLogin, setShowLogin }) {
         <div className={styles.planRow}>
           <div className={styles.weekBox} onClick={() => setSampleOpen(0)}>
             <h3>Web Development</h3>
-            <p>HTML, CSS, JS, React</p>
+            
           </div>
           <div className={styles.weekBox} onClick={() => setSampleOpen(1)}>
             <h3>Data Science</h3>
-            <p>Python, Pandas, ML</p>
+           
           </div>
           <div className={styles.weekBox} onClick={() => setSampleOpen(2)}>
             <h3>UI/UX Design</h3>
-            <p>Design, Wireframes, Prototyping</p>
+            
           </div>
         </div>
 

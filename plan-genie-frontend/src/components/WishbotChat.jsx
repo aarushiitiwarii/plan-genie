@@ -63,16 +63,62 @@ const wishbotQA = [
 		keywords: ["password"],
 		a: "Currently, password management is handled through your account settings. Please check your profile page.",
 	},
+	{
+		keywords: ["hello", "hi", "hey", "greetings"],
+		a: "Hello! How can I help you with PlanGenie today?",
+	},
+	{
+		keywords: ["thanks", "thank you", "thx", "appreciate"],
+		a: "You're welcome! If you have more questions, just ask.",
+	},
+	{
+		keywords: ["bug", "issue", "problem", "error"],
+		a: "If you encounter a bug or issue, please refresh the page or contact support through the Help section.",
+	},
+	{
+		keywords: ["feature", "suggestion", "request"],
+		a: "We love feedback! Please use the Help section to submit your feature requests or suggestions.",
+	},
+	{
+		keywords: ["time", "how long", "duration"],
+		a: "Each roadmap is tailored to your available hours per week. You can adjust your preferences on the homepage.",
+	},
+	{
+		keywords: ["language", "hindi", "other language"],
+		a: "Currently, PlanGenie is available in English only. More languages may be supported in the future!",
+	},
+	{
+		keywords: ["mobile", "app", "android", "ios"],
+		a: "PlanGenie is best experienced on the web, but a mobile app is in our future plans!",
+	},
+	{
+		keywords: ["dark mode", "theme", "appearance"],
+		a: "PlanGenie uses a modern theme. Dark mode support is coming soon!",
+	},
+	{
+		keywords: ["joke", "funny", "laugh"],
+		a: "Why did the developer go broke? Because he used up all his cache! 😄",
+	},
+	{
+		keywords: ["ai", "artificial intelligence", "machine"],
+		a: "PlanGenie uses AI to help generate personalized learning roadmaps for you!",
+	},
+	// Catch-all: always matches if nothing else does
+	{
+		keywords: ["*"],
+		a: "I'm here to help with anything related to PlanGenie! Please try rephrasing your question or ask about features, usage, or support.",
+	},
 ];
 
 function getWishbotAnswer(userInput) {
 	const input = userInput.trim().toLowerCase();
 	for (const { keywords, a } of wishbotQA) {
+		if (keywords.includes("*")) return a; // catch-all at the end
 		if (keywords.some((keyword) => input.includes(keyword))) {
 			return a;
 		}
 	}
-	return "Sorry, I didn't understand that. Please try asking something else about PlanGenie!";
+	return "I'm here to help with anything related to PlanGenie! Please try rephrasing your question or ask about features, usage, or support.";
 }
 
 export default function WishbotChat() {

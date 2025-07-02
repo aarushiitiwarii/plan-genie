@@ -9,7 +9,7 @@ body, .container {
   margin: 0;
   padding: 0;
   background: 
-    linear-gradient(135deg, rgba(7, 10, 97, 0.92) 0%, rgba(44,83,100,0.92) 100%),
+    linear-gradient(135deg, rgba(16, 22, 189, 0.4) 0%, rgba(133, 197, 224, 0.4) 100%),
     url('https://img.freepik.com/free-photo/hand-painted-watercolour-space-background-with-nebula-stars_1048-14650.jpg') center center / cover no-repeat fixed;
   background-blend-mode: overlay;
   overflow-x: hidden;
@@ -38,10 +38,14 @@ html {
   align-items: center;
   height: 120px;
   padding: 0 40px;
-  background: rgba(20, 24, 60, 0.92);
+  background: rgba(33, 40, 225, 0.10); /* Much more transparent blue */
   box-shadow: 0 2px 12px rgba(20,24,60,0.12);
   overflow: visible;
   box-sizing: border-box; /* ✅ Ensures proper sizing */
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+  -webkit-backdrop-filter: blur(2px); /* Safari support */
+  backdrop-filter: blur(2px); /* subtle blur for glass effect */
 }
 
 .logoSection {
@@ -99,18 +103,15 @@ html {
   white-space: nowrap;         /* ✅ Prevents breaking */
 }
 
-/* rest of the file remains the same... */
-
-
 .loginBtn:hover {
   background: linear-gradient(90deg, #6dd5fa 0%, #2980b9 100%);
   box-shadow: 0 4px 16px rgba(44, 83, 100, 0.28);
 }
 
 .mainContent, .loginRequiredModal, .wishbotPopup {
-  background: rgba(11, 5, 85, 0.75);
-  -webkit-backdrop-filter: blur(8px); /* Safari support */
-  backdrop-filter: blur(8px);
+  background: rgba(30, 15, 200, 0.75);
+  -webkit-backdrop-filter: blur(0.5px); /* Much lighter blur */
+  backdrop-filter: blur(0.5px);
 }
 
 .mainContent {
@@ -124,6 +125,10 @@ html {
   border-radius: 0;
   box-shadow: none;
   margin-bottom: 0;
+}
+
+.pageContent {
+  padding-top: 130px; /* Prevents navbar overlap, adjust if navbar height changes */
 }
 
 .textSection {
@@ -187,8 +192,8 @@ html {
   width: 100vw;
   height: 100vh;
   background: rgba(10, 19, 51, 0.7);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(0.5px); /* Much lighter blur */
+  backdrop-filter: blur(0.5px);
   z-index: 1000;
 }
 
@@ -379,7 +384,11 @@ html {
 .wishbotChat {
   display: flex;
   flex-direction: column;
-  height: 320px;
+  height: 180px; /* Further reduced height */
+  width: 220px;  /* Further reduced width */
+  margin-top: 70px; /* Added to prevent overlap with navbar */
+  z-index: 1002; /* Ensure chatbox is above navbar */
+  position: relative;
 }
 
 .wishbotMessages {
@@ -565,9 +574,11 @@ html {
 }
 
 .weekBox {
-  background: rgba(44, 83, 100, 0.18);
-  color: #fff;
-  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
   border-radius: 18px;
   width: 240px;
   height: 140px;
@@ -575,13 +586,10 @@ html {
   cursor: pointer;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
   border: 2px solid #ffd60022;
   font-size: 1.08rem;
   font-family: inherit;
+  word-break: break-word; /* Ensures long words wrap */
 }
 
 .weekBox h3 {
@@ -589,13 +597,19 @@ html {
   margin-bottom: 10px;
   font-size: 1.25rem;
   font-weight: 800;
+  text-align: center;
+  width: 100%;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .weekBox p {
-  color: #fff;
-  font-size: 1.08rem;
-  margin-bottom: 0;
-  font-family: inherit;
+  color: #fff;           /* or #ffd600 for yellow */
+  font-size: 1.1rem;     /* increase if needed */
+  margin: 8px 0 0 0;     /* add some spacing from heading */
+  font-weight: 500;
+  text-align: center;
+  text-shadow: 0 2px 8px #101011; /* optional: add shadow for contrast */
 }
 
 .weekBox:hover {
@@ -642,4 +656,29 @@ html {
   background: #fffbe6;
   object-fit: cover;
   box-shadow: 0 2px 8px rgba(44,83,100,0.18);
+}
+
+/* --- Randomize sparkle position across the screen --- */
+.sparkle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.45;
+  animation: sparkle-float 9s linear infinite;
+  background: radial-gradient(circle, #c1d0d9 0%, #b2cee1 80%, transparent 10%);
+  filter: blur(0.5px);
+}
+
+@keyframes sparkle-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-120vh) scale(1.3);
+    opacity: 0;
+  }
 }

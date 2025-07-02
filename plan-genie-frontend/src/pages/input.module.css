@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #0a1333;
   color: #fff;
-  font-family: 'Poppins', sans-serif;
+  font-family: Georgia, 'Times New Roman', Times, serif;
   display: flex;
   flex-direction: column;
 }
@@ -73,7 +73,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 40px 20px;
+  padding: 140px 20px 10px 20px; /* Top padding matches navbar height (120px) + 20px gap */
 }
 
 .form {
@@ -85,9 +85,17 @@
 }
 
 .label {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #fff;
+  display: flex;
+  width: 100%;
+  text-align: center;
+  font-size: 1.5rem;         /* Adjust as needed */
+  font-weight: 900;
+  margin: 10px 0 4px 0;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  white-space: nowrap;       /* Keeps text in one line */
+  justify-content: center;
+  align-items: center;
+  /* Remove overflow and text-overflow */
 }
 
 .input, .select {
@@ -103,10 +111,14 @@
 }
 
 .select {
+  width: 100%;
+  min-width: 320px;
   background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 20px;
+  font-size: 1.25rem;
+  padding: 16px 20px;
 }
 
 .generateBtn {

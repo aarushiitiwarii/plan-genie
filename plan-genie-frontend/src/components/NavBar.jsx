@@ -76,3 +76,6 @@ export default function NavBar({ onMeetClick, showLoginModal }) {
     </nav>
   );
 }
+
+// Add a helper style for page padding
+// Usage: add className={styles.pageContent} to the main content wrapper in each page
