@@ -1,68 +1,60 @@
-const express = require("express");
+import express from 'express';
+import User from '../models/user.js';
+
 const router = express.Router();
-const User = require("../models/user");
 
-// Signup route
-router.post("/", async (req, res) => {
-  const { name, email, password } = req.body;
+// GET user by ID
+router.get('/:id', async (req, res) => {
   try {
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ error: "User already exists" });
-
-    const newUser = new User({ name, email, password });
-    await newUser.save();
-    res.status(201).json(newUser);
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Error fetching user:', err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Login route
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+// PUT update user
+router.put('/:id', async (req, res) => {
+  const { name, email, bio, location, avatar, github, linkedin } = req.body;
+
   try {
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user || user.password !== password) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
-
-    res.status(200).json(user);
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { name, email, bio, location, avatar, github, linkedin },
+      { new: true, runValidators: true }
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error updating user:", err.message);
+    res.status(500).json({ message: "Failed to update user" });
   }
 });
 
-// Google Sign-In route
+// POST /api/users/google - Handle Google Sign-in
 router.post("/google", async (req, res) => {
-  const { name, email, googleId } = req.body;
   try {
-    if (!name || !email || !googleId) {
+    const { name, email, googleId } = req.body;
+
+    if (!email || !googleId || !name) {
       return res.status(400).json({ error: "Missing Google user data" });
     }
 
     let user = await User.findOne({ email });
 
     if (!user) {
-      user = new User({
-        name,
-        email,
-        password: googleId, // Just stored to fulfill schema; not used
-      });
+      // Create new user if doesn't exist
+      user = new User({ name, email });
       await user.save();
     }
 
     res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Google Sign-in error:", err.message);
+    res.status(500).json({ error: "Google sign-in failed" });
   }
 });
 
-module.exports = router;
+export default router;

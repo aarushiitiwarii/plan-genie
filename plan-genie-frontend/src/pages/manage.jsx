@@ -1,41 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import Sparkles from "../components/Sparkles";
+import NavBar from "../components/NavBar";
 import styles from "./manage.module.css";
-import logoImg from "../assets/logo.png";
-import profileIcon from "../assets/profile.png"; // <-- Add this import
-import confetti from "canvas-confetti";
-import WishbotChat from "../components/WishbotChat";
-import botImg from "../assets/bot.png";
-import { useNavigate } from "react-router-dom"; // <-- Add this import
 
-// Helper to get days in a month
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
-function PieChart({ completed, total }) {
-  const percent = total === 0 ? 0 : (completed / total) * 100;
-  const angle = (percent / 100) * 360;
-  const r = 60, cx = 75, cy = 75;
-  const x = cx + r * Math.cos((Math.PI / 180) * (angle - 90));
-  const y = cy + r * Math.sin((Math.PI / 180) * (angle - 90));
-  const largeArc = percent > 50 ? 1 : 0;
-  const pathData =
-    total === 0 || percent === 100
-      ? ""
-      : `M${cx},${cy - r} A${r},${r} 0 ${largeArc} 1 ${x},${y} L${cx},${cy} Z`;
-
-  return (
-    <svg width="150" height="150" viewBox="0 0 150 150">
-      <circle cx={cx} cy={cy} r={r} fill="#e0e0e0" />
-      {total > 0 && percent === 100 && (
-        <circle cx={cx} cy={cy} r={r} fill="#3d3dd6" />
-      )}
-      {total > 0 && percent > 0 && percent < 100 && (
-        <path d={pathData} fill="#3d3dd6" />
-      )}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#222" strokeWidth="1" />
-    </svg>
-  );
+function getFirstDayOfWeek(year, month) {
+  return new Date(year, month, 1).getDay();
 }
 
 const monthNames = [
@@ -44,274 +17,207 @@ const monthNames = [
 ];
 
 export default function Manage() {
-  const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedDate, setSelectedDate] = useState(
-    now.getMonth() === selectedMonth && now.getFullYear() === selectedYear
-      ? now.getDate()
-      : 1
-  );
-  const [tasks, setTasks] = useState({
-    [`${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`]: [
-      { text: "Finish UI Design", done: true },
-      { text: "Add Smart Animate", done: true },
-      { text: "Review Resource Links", done: false },
-    ],
-  });
-  const [input, setInput] = useState("");
-  const [showWishbot, setShowWishbot] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false); // <-- Add this state
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // <-- Add this state
-  const navigate = useNavigate(); // <-- Add this hook
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarMonth, setCalendarMonth] = useState(selectedDate.getMonth());
+  const [calendarYear, setCalendarYear] = useState(selectedDate.getFullYear());
+  const [tasksByDate, setTasksByDate] = useState({});
+  const [checked, setChecked] = useState({});
+  const [editingTaskIndex, setEditingTaskIndex] = useState(null);
+  const [editedTask, setEditedTask] = useState("");
+  const [showSparkles, setShowSparkles] = useState(false);
+
+  const startDate = new Date(); // Can be adjusted to any fixed start date
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    if (userId) setIsLoggedIn(true);
+    const storedRoadmap = localStorage.getItem("roadmap");
+    if (storedRoadmap) {
+      const lines = storedRoadmap
+        .split("\n")
+        .filter((l) => l.trim().startsWith("-"));
+
+      const tasks = {};
+      lines.forEach((task, i) => {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateKey = date.toISOString().split("T")[0];
+        if (!tasks[dateKey]) tasks[dateKey] = [];
+        tasks[dateKey].push(task.replace(/^\s*-\s*/, ""));
+      });
+
+      setTasksByDate(tasks);
+    }
   }, []);
 
-  const handleProfileIconClick = () => {
-    setShowProfileMenu((prev) => !prev);
+  const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
+  const firstDay = getFirstDayOfWeek(calendarYear, calendarMonth);
+
+  const handleDayClick = (day) => {
+    const newDate = new Date(calendarYear, calendarMonth, day);
+    setSelectedDate(newDate);
   };
 
-  const handleProfileMenuOption = (option) => {
-    setShowProfileMenu(false);
-    if (option === "signout") {
-      localStorage.removeItem("userId");
-      setIsLoggedIn(false);
-    } else if (option === "profile") {
-      navigate("/profile");
-    } else if (option === "history") {
-      navigate("/history");
-    } else if (option === "help") {
-      navigate("/help");
-    } else if (option === "manage") {
-      navigate("/manage");
+  const formatDateKey = (y, m, d) => {
+    return new Date(y, m, d).toISOString().split("T")[0];
+  };
+
+  const dateKey = formatDateKey(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    selectedDate.getDate()
+  );
+
+  const tasks = tasksByDate[dateKey] || [];
+  const allChecked = tasks.length > 0 && tasks.every((_, i) => checked[dateKey + "-" + i]);
+
+  const handleCheck = (idx) => {
+    const newChecked = { ...checked, [dateKey + "-" + idx]: !checked[dateKey + "-" + idx] };
+    setChecked(newChecked);
+    if (tasks.every((_, i) => newChecked[dateKey + "-" + i] || i === idx)) {
+      setShowSparkles(true);
+      setTimeout(() => setShowSparkles(false), 1500);
     }
   };
 
-  const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
-
-  // For calendar grid
-  const firstDay = new Date(selectedYear, selectedMonth, 1).getDay(); // 0=Sun
-  const calendarCells = [];
-  for (let i = 0; i < firstDay; i++) calendarCells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
-
-  // Key for tasks
-  const taskKey = `${selectedYear}-${selectedMonth}-${selectedDate}`;
-  const dayTasks = tasks[taskKey] || [];
-  const completed = dayTasks.filter((t) => t.done).length;
-
-  // For real-time highlight of today
-  const isToday = (d) =>
-    d === now.getDate() &&
-    selectedMonth === now.getMonth() &&
-    selectedYear === now.getFullYear();
-
-  const handleDateClick = (day) => {
-    setSelectedDate(day);
-    setInput("");
+  const handleEdit = (i) => {
+    setEditingTaskIndex(i);
+    setEditedTask(tasks[i]);
   };
 
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setTasks((prev) => ({
-      ...prev,
-      [taskKey]: [
-        ...(prev[taskKey] || []),
-        { text: input.trim(), done: false },
-      ],
-    }));
-    setInput("");
+  const saveEdit = () => {
+    const updatedTasks = [...tasks];
+    updatedTasks[editingTaskIndex] = editedTask;
+
+    const updated = { ...tasksByDate, [dateKey]: updatedTasks };
+    setTasksByDate(updated);
+    localStorage.setItem("roadmap", convertTasksToRoadmap(updated)); // Optional save
+    setEditingTaskIndex(null);
+    setEditedTask("");
   };
 
-  const handleToggleTask = (idx) => {
-    setTasks((prev) => ({
-      ...prev,
-      [taskKey]: prev[taskKey].map((task, i) =>
-        i === idx ? { ...task, done: !task.done } : task
-      ),
-    }));
+  const convertTasksToRoadmap = (allTasks) => {
+    const flat = [];
+    Object.values(allTasks).forEach((list) => {
+      list.forEach((t) => flat.push("- " + t));
+    });
+    return flat.join("\n");
   };
 
-  // Add this function to delete a task
-  const handleDeleteTask = (idx) => {
-    setTasks((prev) => ({
-      ...prev,
-      [taskKey]: prev[taskKey].filter((_, i) => i !== idx),
-    }));
+  const getDayColor = (y, m, d) => {
+    const key = formatDateKey(y, m, d);
+    const t = tasksByDate[key];
+    if (!t) return "#eee";
+    const allDone = t.every((_, i) => checked[key + "-" + i]);
+    if (allDone) return "#a3e635"; // green
+    return "#facc15"; // yellow
   };
-
-  // Generate year options (current year +/- 5 years)
-  const yearOptions = [];
-  for (let y = now.getFullYear() - 5; y <= now.getFullYear() + 5; y++) {
-    yearOptions.push(y);
-  }
-
-  // Confetti trigger
-  const prevCompletedRef = useRef(0);
-  useEffect(() => {
-    if (dayTasks.length > 0 && completed === dayTasks.length && prevCompletedRef.current !== completed) {
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.6 }
-      });
-    }
-    prevCompletedRef.current = completed;
-  }, [completed, dayTasks.length]);
 
   return (
     <div className={styles.container}>
-      <nav className={styles.navbar}>
-        <div className={styles.logoSection}>
-          <img src={logoImg} alt="PlanGenie Logo" className={styles.logo} />
-          <span className={styles.brand}>PlanGenie</span>
-        </div>
-        <div className={styles.navLinks}>
-          {isLoggedIn ? (
-            <div style={{ position: "relative", display: "inline-block" }}>
-              <img
-                src={profileIcon}
-                alt="Profile"
-                className={styles.profileIcon}
-                onClick={handleProfileIconClick}
-                title="Profile"
-                style={{ cursor: "pointer", width: "32px", height: "32px", borderRadius: "50%" }}
-              />
-              {showProfileMenu && (
-                <div className={styles.profileMenu}>
-                  <button onClick={() => handleProfileMenuOption("profile")}>Profile</button>
-                  <button onClick={() => handleProfileMenuOption("history")}>History</button>
-                  <button onClick={() => handleProfileMenuOption("manage")}>Manage Tasks</button>
-                  <button onClick={() => handleProfileMenuOption("help")}>Help</button>
-                  <button onClick={() => handleProfileMenuOption("signout")}>Sign Out</button>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </nav>
-      <h1 className={styles.heading}>Track Your Progress</h1>
+      <NavBar />
+      {showSparkles && <Sparkles trigger={showSparkles} onEnd={() => setShowSparkles(false)} />}
       <div className={styles.content}>
         <div className={styles.calendarSection}>
-          <div className={styles.monthYearRow}>
-            <select
-              className={styles.monthSelect}
-              value={selectedMonth}
-              onChange={e => {
-                setSelectedMonth(Number(e.target.value));
-                setSelectedDate(1);
-              }}
-            >
-              {monthNames.map((m, idx) => (
-                <option key={m} value={idx}>{m}</option>
-              ))}
-            </select>
-            <select
-              className={styles.yearSelect}
-              value={selectedYear}
-              onChange={e => {
-                setSelectedYear(Number(e.target.value));
-                setSelectedDate(1);
-              }}
-            >
-              {yearOptions.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+          <div className={styles.monthHeader}>
+            <button className={styles.monthArrow} onClick={() => {
+              if (calendarMonth === 0) {
+                setCalendarMonth(11);
+                setCalendarYear(calendarYear - 1);
+              } else {
+                setCalendarMonth(calendarMonth - 1);
+              }
+            }}>
+              &#60;
+            </button>
+            <span className={styles.monthLabel}>
+              {monthNames[calendarMonth]} {calendarYear}
+            </span>
+            <button className={styles.monthArrow} onClick={() => {
+              if (calendarMonth === 11) {
+                setCalendarMonth(0);
+                setCalendarYear(calendarYear + 1);
+              } else {
+                setCalendarMonth(calendarMonth + 1);
+              }
+            }}>
+              &#62;
+            </button>
           </div>
           <div className={styles.calendarGrid}>
-            {["Sun", "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat"].map((d) => (
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
               <div key={d} className={styles.dayLabel}>{d}</div>
             ))}
-            {calendarCells.map((day, idx) =>
-              day ? (
+            {Array(firstDay).fill(null).map((_, i) => (
+              <div key={"empty-" + i} className={styles.dayCellEmpty}></div>
+            ))}
+            {Array(daysInMonth).fill(null).map((_, i) => {
+              const day = i + 1;
+              const isSelected =
+                selectedDate.getDate() === day &&
+                selectedDate.getMonth() === calendarMonth &&
+                selectedDate.getFullYear() === calendarYear;
+              return (
                 <button
                   key={day}
-                  className={`${styles.dayCell} ${
-                    day === selectedDate ? styles.selectedDay : ""
-                  } ${isToday(day) ? styles.today : ""}`}
-                  onClick={() => handleDateClick(day)}
+                  className={`${styles.dayCell} ${isSelected ? styles.selectedDay : ""}`}
+                  style={{ backgroundColor: getDayColor(calendarYear, calendarMonth, day) }}
+                  onClick={() => handleDayClick(day)}
                 >
                   {day}
                 </button>
-              ) : (
-                <div key={`empty-${idx}`} className={styles.dayCellEmpty}></div>
-              )
-            )}
+              );
+            })}
           </div>
         </div>
+
         <div className={styles.todoSection}>
           <div className={styles.todoCard}>
             <div className={styles.todoTitle}>
-              Tasks for {selectedDate} {monthNames[selectedMonth]} {selectedYear}
+              Tasks for {selectedDate.getDate()} {monthNames[selectedDate.getMonth()]}
             </div>
             <ul className={styles.todoList}>
-              {dayTasks.map((task, idx) => (
-                <li key={idx} className={styles.todoItem}>
-                  <input
-                    type="checkbox"
-                    checked={task.done}
-                    onChange={() => handleToggleTask(idx)}
-                  />
-                  <span className={task.done ? styles.done : ""}>{task.text}</span>
-                  <button
-                    className={styles.deleteTaskBtn}
-                    type="button"
-                    onClick={() => handleDeleteTask(idx)}
-                    title="Delete task"
-                  >-</button>
+              {tasks.length === 0 ? (
+                <li className={styles.todoItem} style={{ color: "#888" }}>
+                  No tasks assigned.
                 </li>
-              ))}
+              ) : (
+                tasks.map((task, idx) => (
+                  <li key={idx} className={styles.todoItem}>
+                    <input
+                      type="checkbox"
+                      checked={!!checked[dateKey + "-" + idx]}
+                      onChange={() => handleCheck(idx)}
+                      style={{ marginRight: 12, width: 20, height: 20 }}
+                    />
+                    {editingTaskIndex === idx ? (
+                      <>
+                        <input
+                          value={editedTask}
+                          onChange={(e) => setEditedTask(e.target.value)}
+                          style={{ marginRight: 10, width: "60%" }}
+                        />
+                        <button onClick={saveEdit}>Save</button>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          style={{
+                            textDecoration: checked[dateKey + "-" + idx] ? "line-through" : "none"
+                          }}
+                        >
+                          {task}
+                        </span>
+                        <button onClick={() => handleEdit(idx)} style={{ marginLeft: 10 }}>
+                          ✏️
+                        </button>
+                      </>
+                    )}
+                  </li>
+                ))
+              )}
             </ul>
-            <form className={styles.addTaskForm} onSubmit={handleAddTask}>
-              <input
-                className={styles.addTaskInput}
-                type="text"
-                placeholder="Add new task"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-              <button className={styles.addTaskBtn} type="submit">+</button>
-            </form>
-            <div className={styles.pieChart}>
-              <PieChart completed={completed} total={dayTasks.length} />
-            </div>
-            {dayTasks.length > 0 && completed === dayTasks.length && (
-              <div className={styles.congratsMsg}>
-                You did it buddy! 
-                Let's move ahead with another day💪🏻
-                
-              </div>
-            )}
           </div>
         </div>
       </div>
-      <div
-        className={styles.wishbotLeft}
-        onClick={() => setShowWishbot((prev) => !prev)}
-        title="Wishbot"
-      >
-        <img
-          src={botImg}
-          alt="Wishbot"
-          className={styles.wishbotImg}
-        />
-        <span className={styles.wishbotLabel}>Wishbot</span>
-      </div>
-
-      {showWishbot && (
-        <div className={styles.wishbotPopupLeft}>
-          <div className={styles.wishbotHeader}>
-            <span>Wishbot</span>
-            <button onClick={() => setShowWishbot(false)}>X</button>
-          </div>
-          <WishbotChat />
-        </div>
-      )}
     </div>
   );
 }

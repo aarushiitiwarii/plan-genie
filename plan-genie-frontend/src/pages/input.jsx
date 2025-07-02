@@ -1,81 +1,76 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styles from "./input.module.css";
 import logoImg from "../assets/logo.png";
-import genieImg from "../assets/genie.png";
-import { createGoal } from "../api";
+import profileIcon from "../assets/profile.png";
 
-const COURSE_OPTIONS = {
-  "Software Engineering": [
-    "Web Development",
-    "React",
-    "DSA",
-    "Backend Development",
-    "DevOps",
-    "Mobile App Development",
-    "Machine Learning",
-    "System Design"
-  ],
-  "Hardware Engineering": [
-    "Embedded Systems",
-    "VLSI Design",
-    "Microcontrollers",
-    "FPGA Programming",
-    "PCB Design",
-    "IoT",
-    "Digital Signal Processing"
-  ]
-};
+export default function Input() {
+  const [goal, setGoal] = useState("");
+  const [experience, setExperience] = useState("");
+  const [timePerWeek, setTimePerWeek] = useState("");
+  const [learningStyle, setLearningStyle] = useState("");
+  const [format, setFormat] = useState("");
+  const [numWeeks, setNumWeeks] = useState(""); // ✅ number of weeks
+  const [loading, setLoading] = useState(false);
 
-function parseWeeks(input) {
-  if (!input) return 0;
-  const match = input.trim().toLowerCase().match(/(\d+)\s*(week|weeks|month|months)/);
-  if (!match) return 0;
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-  if (unit.startsWith("month")) {
-    return value * 4;
-  }
-  return value;
-}
-
-export default function InputPage() {
-  const [domain, setDomain] = useState(""); // default empty
-  const [course, setCourse] = useState(""); // default empty
-  const [weeks, setWeeks] = useState(""); // default empty
-  const [learning, setLearning] = useState(""); // default empty
   const navigate = useNavigate();
 
-  const handleDomainChange = (e) => {
-    setDomain(e.target.value);
-    setCourse(""); // Reset course when domain changes
+  const parseRoadmapString = (roadmapStr) => {
+    const weeks = [];
+    const weekRegex =
+      /Week (\d) \((.*?)\):\s+Goal: (.*?)\n([\s\S]*?)(?=Week \d|\nPaid resources|\nMotivational Tips|$)/g;
+
+    let match;
+    while ((match = weekRegex.exec(roadmapStr)) !== null) {
+      const weekNumber = parseInt(match[1]);
+      const dateRange = match[2];
+      const goal = match[3];
+      const details = match[4].trim();
+
+      const task = {
+        weekNumber,
+        content: `${goal}\n\n${details}`,
+        status: "pending",
+        dueDate: new Date(dateRange.split(" - ")[1] + " 2025").toISOString().split("T")[0],
+      };
+      weeks.push(task);
+    }
+
+    return weeks;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const goalData = { domain, course, weeks, learning };
-
+  const handleGenerate = async () => {
+    setLoading(true);
     try {
-      const res = await createGoal(goalData);
-      console.log("✅ Goal saved:", res.data);
-      // alert("Goal saved!");
-    } catch (error) {
-      console.error("❌ Failed to save goal:", error);
-      // alert("Failed to save goal");
+      const inputData = {
+        goal,
+        experience,
+        timePerWeek,
+        learningStyle,
+        format,
+        numWeeks,
+      };
+
+      // ✅ Save input for reuse (for "Generate Again")
+      localStorage.setItem("planGenieInput", JSON.stringify(inputData));
+
+      const response = await axios.post("http://localhost:5000/api/roadmaps/generate", inputData);
+
+      console.log("✅ Got roadmap from backend:", response.data);
+      const roadmapStr = response.data.roadmap;
+      const parsedTasks = parseRoadmapString(roadmapStr);
+      localStorage.setItem("planGenieTasks", JSON.stringify(parsedTasks));
+      localStorage.setItem("roadmap", roadmapStr);
+
+      navigate("/result", { state: { roadmap: roadmapStr } });
+    } catch (err) {
+      console.error("❌ Error generating roadmap:", err);
+      alert("Failed to generate roadmap.");
+    } finally {
+      setLoading(false);
     }
   };
-
-  const handleGenerateRoadmap = () => {
-    const computedWeeks = parseWeeks(weeks);
-    if (!computedWeeks) {
-      alert("Please enter time commitment as 'X weeks' or 'Y months'.");
-      return;
-    }
-    localStorage.setItem("roadmapWeeks", computedWeeks);
-    navigate("/roadmap");
-  };
-
-  const isFormComplete = domain && course && weeks && learning;
 
   return (
     <div className={styles.container}>
@@ -84,85 +79,80 @@ export default function InputPage() {
           <img src={logoImg} alt="PlanGenie Logo" className={styles.logo} />
           <span className={styles.brand}>PlanGenie</span>
         </div>
+        <div className={styles.navLinks}>
+          <a href="/" className={styles.link}>Home</a>
+          <img
+            src={profileIcon}
+            alt="Profile"
+            className={styles.profileIcon}
+            onClick={() => navigate("/profile")}
+          />
+        </div>
       </nav>
+
       <main className={styles.mainContent}>
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <label className={styles.label}>Choose Your Domain</label>
-          <select
-            className={styles.select}
-            value={domain}
-            onChange={handleDomainChange}
-          >
-            <option value="" disabled>Select Domain</option>
-            <option value="Software Engineering">Software Engineering</option>
-            <option value="Hardware Engineering">Hardware Engineering</option>
-          </select>
-
-          <label className={styles.label}>Select Course</label>
-          <select
-            className={styles.select}
-            value={course}
-            onChange={e => setCourse(e.target.value)}
-            disabled={!domain}
-          >
-            <option value="" disabled>
-              {domain ? "Select Course" : "Select Domain First"}
-            </option>
-            {domain &&
-              COURSE_OPTIONS[domain].map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-          </select>
-
-          <label className={styles.label}>Time Commitment</label>
+        <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+          <div className={styles.label}>What's your learning goal?</div>
           <input
             className={styles.input}
-            type="text"
-            value={weeks}
-            onChange={e => setWeeks(e.target.value)}
-            placeholder="e.g. 8 weeks, 3 months, etc."
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder="e.g. Become a full-stack web developer"
           />
 
-          <label className={styles.label}>How do you prefer to learn</label>
-          <div className={styles.cardGroup}>
-            <div
-              className={`${styles.card} ${learning === "Master the basics" ? styles.selected : ""}`}
-              onClick={() => setLearning("Master the basics")}
-            >
-              <span className={styles.radio}></span>
-              Master the basics
-            </div>
-            <div
-              className={`${styles.card} ${learning === "Project-Based Learning" ? styles.selected : ""}`}
-              onClick={() => setLearning("Project-Based Learning")}
-            >
-              <span className={styles.radio}></span>
-              Project-Based Learning
-            </div>
-            <div
-              className={`${styles.card} ${learning === "Exam Preparation" ? styles.selected : ""}`}
-              onClick={() => setLearning("Exam Preparation")}
-            >
-              <span className={styles.radio}></span>
-              Exam Preparation
-            </div>
-          </div>
+          <div className={styles.label}>Your experience level:</div>
+          <select className={styles.select} value={experience} onChange={(e) => setExperience(e.target.value)}>
+            <option value="">Select</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+
+          <div className={styles.label}>How much time per week can you give?</div>
+          <select className={styles.select} value={timePerWeek} onChange={(e) => setTimePerWeek(e.target.value)}>
+            <option value="">Select</option>
+            <option value="Less than 5 hours">Less than 5 hours</option>
+            <option value="5–10 hours">5–10 hours</option>
+            <option value="10–15 hours">10–15 hours</option>
+            <option value="15+ hours">15+ hours</option>
+          </select>
+
+          <div className={styles.label}>Preferred learning style:</div>
+          <select className={styles.select} value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)}>
+            <option value="">Select</option>
+            <option value="Video-based">Video-based</option>
+            <option value="Reading articles">Reading articles</option>
+            <option value="Hands-on projects">Hands-on projects</option>
+            <option value="Mix of all">Mix of all</option>
+          </select>
+
+          <div className={styles.label}>Preferred format:</div>
+          <select className={styles.select} value={format} onChange={(e) => setFormat(e.target.value)}>
+            <option value="">Select</option>
+            <option value="Free resources">Free resources</option>
+            <option value="Paid courses">Paid courses</option>
+            <option value="Mix of both">Mix of both</option>
+          </select>
+
+          <div className={styles.label}>How many weeks should your roadmap be?</div>
+          <input
+            className={styles.input}
+            type="number"
+            min="1"
+            value={numWeeks}
+            onChange={(e) => setNumWeeks(e.target.value)}
+            placeholder="e.g. 6"
+          />
 
           <button
-            className={styles.generateBtn}
-            onClick={handleGenerateRoadmap}
-            disabled={!isFormComplete}
             type="button"
+            className={styles.generateBtn}
+            onClick={handleGenerate}
+            disabled={loading}
           >
-            Generate Roadmap
+            {loading ? "Generating..." : "Generate Roadmap"}
           </button>
         </form>
-
-        <div className={styles.genieSection}>
-          <img src={genieImg} alt="Genie" className={styles.genieImg} />
-        </div>
       </main>
     </div>
   );

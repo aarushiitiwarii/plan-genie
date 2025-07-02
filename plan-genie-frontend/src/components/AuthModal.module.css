@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1100;
 }
 
 .modal {
@@ -20,6 +20,7 @@
   text-align: center;
   position: relative;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  z-index: 1101;
 }
 
 .form {

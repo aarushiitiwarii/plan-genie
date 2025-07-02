@@ -86,7 +86,8 @@
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  user-select: none;
+-webkit-user-select: none;
+user-select: none;
   animation: wishbot-bounce 2.2s ease-in-out infinite;
 }
 
